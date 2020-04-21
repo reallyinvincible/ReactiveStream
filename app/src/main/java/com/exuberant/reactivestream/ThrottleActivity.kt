@@ -74,6 +74,8 @@ class ThrottleActivity : AppCompatActivity() {
             .subscribe {
                 incrementThrottled()
             }
+
+        //Debounce resets timer while Throttle counts cumulative time
     }
 
     private fun incrementThrottled() {
