@@ -5,9 +5,11 @@ import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.jakewharton.rxbinding3.view.clicks
+import io.reactivex.Observable
 import io.reactivex.Observer
 import io.reactivex.disposables.Disposable
 import io.reactivex.functions.Consumer
+import io.reactivex.observables.ConnectableObservable
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.activity_throttle.*
 import java.util.concurrent.TimeUnit
@@ -16,12 +18,13 @@ class ThrottleActivity : AppCompatActivity() {
 
     private var countForThrottled = 0
     private var countForNonThrottled = 0
+    private var countForDebounce = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_throttle)
-        //sugar()
-        nonSugar()
+        sugar()
+        //nonSugar()
     }
 
     @SuppressLint("CheckResult")
@@ -66,14 +69,28 @@ class ThrottleActivity : AppCompatActivity() {
 
     @SuppressLint("CheckResult")
     private fun sugar() {
-        button.clicks()
-            .map {
+        val observable = button.clicks()
+            .publish()
+
+        observable
+            .subscribe {
                 incrementNonThrottled()
             }
+
+        observable
             .throttleFirst(1000, TimeUnit.MILLISECONDS)
             .subscribe {
                 incrementThrottled()
             }
+        observable
+            .debounce(1000, TimeUnit.MILLISECONDS)
+            .subscribe {
+                runOnUiThread {
+                    incrementDebounced()
+                }
+            }
+
+        observable.connect()
 
         //Debounce resets timer while Throttle counts cumulative time
     }
@@ -86,6 +103,11 @@ class ThrottleActivity : AppCompatActivity() {
     private fun incrementNonThrottled() {
         countForNonThrottled++
         nonThrottledCount.text = countForNonThrottled.toString()
+    }
+
+    private fun incrementDebounced() {
+        countForDebounce++
+        debounceCount.text = countForDebounce.toString()
     }
 
 }
